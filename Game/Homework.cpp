@@ -14,9 +14,14 @@ template <class TYPE> class vec3
 		}
 	}
 
-	isZero(class vec3)
+	isZero(vec3 vector1)
 	{
 		vec3.x
+	}
+
+	distanceTo(vec3 vector1)
+	{
+
 	}
 
 	vec3::~vec3() //Destructor
