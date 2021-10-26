@@ -17,8 +17,12 @@
     <resizable value="false"/>
     <fullscreen_window value="false"/>
   </window>
-
-  <!-- L03: Added maps folder as config option -->
+  
+  <audio>
+    <music volume = "50" />
+    <fx volume = "10" />
+  </audio>
+    
   <map>
     <folder>Assets/maps/</folder>
   </map>
