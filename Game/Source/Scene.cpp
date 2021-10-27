@@ -32,7 +32,7 @@ bool Scene::Awake()
 bool Scene::Start()
 {
 	// L03: DONE: Load map
-	app->map->Load("hello.tmx");
+	app->map->Load("map1.tmx");
 	app->audio->PlayMusic("Assets/audio/music/music_spy.ogg");
 
 	return true;
@@ -66,7 +66,6 @@ bool Scene::Update(float dt)
 	if(app->input->GetKey(SDL_SCANCODE_RIGHT) == KEY_REPEAT)
 		app->render->camera.x += 1;
 
-	//app->render->DrawTexture(img, 380, 100); // Placeholder not needed any more
 
 	// Draw map
 	app->map->Draw();

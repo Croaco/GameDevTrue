@@ -52,6 +52,8 @@ public:
     // L02: DONE 1: Create methods to request Load / Save
 	void LoadGameRequest();
 	void SaveGameRequest() const;
+	bool LoadFromFile();
+	bool SaveToFile() const;
 
 private:
 

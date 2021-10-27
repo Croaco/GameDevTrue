@@ -29,43 +29,63 @@ bool Map::Awake(pugi::xml_node& config)
     return ret;
 }
 
+int Properties::GetProperty(const char* value, int defaultValue) const
+{
+	ListItem<Property*>* item = list.start;
+
+	while (item)
+	{
+		if (item->data->name == value)
+			return item->data->value;
+		item = item->next;
+	}
+
+	return defaultValue;
+}
+
 // Draw the map (all requried layers)
 void Map::Draw()
 {
 	if (mapLoaded == false) return;
 
-    // L03: DONE 6: Iterate all tilesets and draw all their 
-    // images in 0,0 (you should have only one tileset for now)
-	/*
-    ListItem<TileSet*>* tileset;
-    tileset = mapData.tilesets.start;
+	// L04: DONE 5: Prepare the loop to draw all tilesets + DrawTexture()
+	ListItem<MapLayer*>* mapLayerItem;
+	mapLayerItem = mapData.maplayers.start;
 
-    while (tileset != NULL) 
-	{
-        app->render->DrawTexture(tileset->data->texture,0,0);
-        tileset = tileset->next;
-    }
-	*/
-	
-	// L04: TODO 5: Prepare the loop to draw all tiles in a layer + DrawTexture()
-	for(int i = 0; i < mapData.maplayers.start->data->width; i++)
-	{
-		for (int j = 0; j < mapData.maplayers.start->data->height; j++) 
-		{
-			// L04: TODO 9: Complete the draw function (inside the loop from TODO 5)
-			// Find which tile id is on x, y coordinates 
-			// Find out that Tile’s Rect inside the tileset Image (
-			// Find out where in the World(screen) we have to draw
-			// DrawTexture()
-			int id = mapData.maplayers.start->data->Get(i, j); //Get tile id
-			SDL_Rect rect = mapData.tilesets.start->data->GetTileRect(id);// Pixel coordinates in the picture based on id
-			iPoint screenPosition = MapToWorld(i, j);// Locate where in the screen to draw
-			
-			app->render->DrawTexture(mapData.tilesets.start->data->texture, screenPosition.x,screenPosition.y, &rect);
+	// L06: TODO 4: Make sure we draw all the layers and not just the first one
+	while (mapLayerItem != NULL) {
+
+		if (mapLayerItem->data->properties.GetProperty("Draw") == 1) {
+
+			for (int x = 0; x < mapLayerItem->data->width; x++)
+			{
+				for (int y = 0; y < mapLayerItem->data->height; y++)
+				{
+					// L04: DONE 9: Complete the draw function
+					int gid = mapLayerItem->data->Get(x, y);
+
+					if (gid > 0) {
+
+						//L06: TODO 4: Obtain the tile set using GetTilesetFromTileId
+						//now we always use the firt tileset in the list
+						//TileSet* tileset = mapData.tilesets.start->data;
+						TileSet* tileset = GetTilesetFromTileId(gid);
+
+						SDL_Rect r = tileset->GetTileRect(gid);
+						iPoint pos = MapToWorld(x, y);
+
+						app->render->DrawTexture(tileset->texture,
+							pos.x,
+							pos.y,
+							&r);
+					}
+
+				}
+			}
 		}
+
+		mapLayerItem = mapLayerItem->next;
 	}
-
-
 
 }
 
@@ -74,10 +94,70 @@ iPoint Map::MapToWorld(int x, int y) const
 {
 	iPoint ret;
 
-	ret.x = x * mapData.tileWidth;
-	ret.y = y * mapData.tileHeight;
+	// L05: DONE 1: Add isometric map to world coordinates
+	if (mapData.type == MAPTYPE_ORTHOGONAL)
+	{
+		ret.x = x * mapData.tileWidth;
+		ret.y = y * mapData.tileHeight;
+	}
+	else if (mapData.type == MAPTYPE_ISOMETRIC)
+	{
+		ret.x = (x - y) * (mapData.tileWidth / 2);
+		ret.y = (x + y) * (mapData.tileHeight / 2);
+	}
+	else
+	{
+		LOG("Unknown map type");
+		ret.x = x; ret.y = y;
+	}
 
 	return ret;
+}
+
+iPoint Map::WorldToMap(int x, int y) const
+{
+	iPoint ret(0, 0);
+
+	// L05: DONE 3: Add the case for isometric maps to WorldToMap
+	if (mapData.type == MAPTYPE_ORTHOGONAL)
+	{
+		ret.x = x / mapData.tileWidth;
+		ret.y = y / mapData.tileHeight;
+	}
+	else if (mapData.type == MAPTYPE_ISOMETRIC)
+	{
+
+		float half_width = mapData.tileWidth * 0.5f;
+		float half_height = mapData.tileHeight * 0.5f;
+		ret.x = int((x / half_width + y / half_height) / 2);
+		ret.y = int((y / half_height - (x / half_width)) / 2);
+	}
+	else
+	{
+		LOG("Unknown map type");
+		ret.x = x; ret.y = y;
+	}
+
+	return ret;
+}
+
+TileSet* Map::GetTilesetFromTileId(int id) const
+{
+	ListItem<TileSet*>* item = mapData.tilesets.start;
+	TileSet* set = item->data;
+
+	while (item)
+	{
+		if (id < item->data->firstgid)
+		{
+			set = item->prev->data;
+			break;
+		}
+		set = item->data;
+		item = item->next;
+	}
+
+	return set;
 }
 
 // Get relative Tile rectangle
@@ -193,6 +273,16 @@ bool Map::LoadMap(pugi::xml_node mapFile)
         mapData.width = map.attribute("width").as_int();
         mapData.tileHeight = map.attribute("tileheight").as_int();
         mapData.tileWidth = map.attribute("tilewidth").as_int();
+
+		mapData.type = MAPTYPE_UNKNOWN; //Goes from isometric map to world
+		if (strcmp(map.attribute("orientation").as_string(), "isometric") == 0)
+		{
+			mapData.type = MAPTYPE_ISOMETRIC;
+		}
+		if (strcmp(map.attribute("orientation").as_string(), "orthogonal") == 0)
+		{
+			mapData.type = MAPTYPE_ORTHOGONAL;
+		}
 	}
 
 	return ret;
@@ -269,6 +359,8 @@ bool Map::LoadLayer(pugi::xml_node& node, MapLayer* layer)
 	layer->name = node.attribute("name").as_string();
 	layer->width = node.attribute("width").as_int();
 	layer->height = node.attribute("height").as_int();
+
+	LoadProperties(node, layer->properties); //Load properties
 	
 	//Reserve the memory for the tile array
 	layer->data = new uint[layer->width * layer->height];
@@ -297,6 +389,23 @@ bool Map::LoadAllLayers(pugi::xml_node mapNode) {
 
 		//add the layer to the map
 		mapData.maplayers.add(mapLayer);
+	}
+
+	return ret;
+}
+
+// L06: TODO 6: Load a group of properties from a node and fill a list with it
+bool Map::LoadProperties(pugi::xml_node& node, Properties& properties)
+{
+	bool ret = false;
+
+	for (pugi::xml_node propertieNode = node.child("properties").child("property"); propertieNode; propertieNode = propertieNode.next_sibling("property"))
+	{
+		Properties::Property* p = new Properties::Property();
+		p->name = propertieNode.attribute("name").as_string();
+		p->value = propertieNode.attribute("value").as_int();
+
+		properties.list.add(p);
 	}
 
 	return ret;

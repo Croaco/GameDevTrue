@@ -90,18 +90,21 @@ bool Render::CleanUp()
 
 // L02: TODO 6: Implement a method to load the state, for now load camera's x and y
 // Load Game State
-bool Render::LoadState(pugi::xml_node& data)
+bool Render::LoadState(pugi::xml_node& node)
 {
-	//...
+	camera.x = node.child("camera").attribute("x").as_int();
+	camera.y = node.child("camera").attribute("y").as_int();
 
 	return true;
 }
 
 // L02: TODO 8: Create a method to save the state of the renderer
 // Save Game State
-bool Render::SaveState(pugi::xml_node& data) const
+bool Render::SaveState(pugi::xml_node& node) const
 {
-	//...
+	pugi::xml_node cam = node.append_child("camera");
+	cam.append_attribute("x").set_value(55);
+	cam.append_attribute("y").set_value(55);
 
 	return true;
 }

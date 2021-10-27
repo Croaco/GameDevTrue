@@ -293,11 +293,28 @@ void App::SaveGameRequest() const
 // then call all the modules to load themselves
 bool App::LoadGame()
 {
-	bool ret = false;
+	bool ret = true;
+	pugi::xml_document gameStateFile;
+	pugi::xml_parse_result result = gameStateFile.load_file("savegame.xml");
 
-	//...
+	if (result == NULL)
+	{
+		LOG("Error %s", result.description());
+		ret = false;
+	}
+	else
+	{
+		pugi::xml_node saveStateNode = gameStateFile.child("save_state");
+		ListItem<Module*>* item;
+		item = modules.start;
 
-	loadGameRequested = false;
+		while (item != NULL && ret == true)
+		{
+			pugi::xml_node moduleNode = saveStateNode.child(item->data->name.GetString());
+			ret = item->data->LoadState(moduleNode);
+			item = item->next;
+		}
+	}
 
 	return ret;
 }
@@ -306,12 +323,30 @@ bool App::LoadGame()
 bool App::SaveGame() const
 {
 	bool ret = true;
+	pugi::xml_document saveStateFile;
+	pugi::xml_parse_result result = saveStateFile.load_file("savegame.xml");
 
-	//...
+	if (result == NULL)
+	{
+		LOG("Error %s", result.description());
+		ret = false;
+	}
+	else
+	{
+		pugi::xml_node saveStateNode = saveStateFile.child("save_state");
+		ListItem<Module*>* item;
+		item = modules.start;
 
-	saveGameRequested = false;
+		while (item != NULL && ret == true)
+		{
+			pugi::xml_node moduleNode = saveStateNode.child(item->data->name.GetString());
+			ret = item->data->SaveState(moduleNode);
+			item = item->next;
+		}
 
-	return ret;
+		saveStateFile.save_file("savegamem.xml");
+		return ret;
+	}
 }
 
 
