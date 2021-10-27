@@ -17,6 +17,7 @@ class Textures;
 class Audio;
 class Scene;
 class Map;
+class Player;
 
 class App
 {
