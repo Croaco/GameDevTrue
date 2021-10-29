@@ -91,6 +91,7 @@ public:
 	Audio* audio;
 	Scene* scene;
 	Map* map;
+	Player* player;
 
 private:
 
