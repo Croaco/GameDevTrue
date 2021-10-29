@@ -24,6 +24,6 @@
   </audio>
     
   <map>
-    <folder>Assets/maps/map1</folder>
+    <folder>Assets/maps/</folder>
   </map>
 </config>
